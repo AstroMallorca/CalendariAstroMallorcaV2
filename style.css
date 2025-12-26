@@ -205,4 +205,14 @@ body.nocturn .dies-setmana div{
   color: #FFD400 !important;
   font-weight: 900;
 }
+.info-foto {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #555;
+  margin: 8px 0 16px 0;
+}
+
+body.nocturn .info-foto {
+  color: #ccc;
+}
 
