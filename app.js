@@ -18,25 +18,20 @@ const MESOS_CA = [
 ];
 
 // === CONTROL DE MES (SWIPE) ===
-let mesActual = getMesInicial(); // mes inicial (auto)
-
+// En obrir:
+// - si avui és any 2026 -> mostra el mes actual
+// - si no -> Gener 2026
+const AVUI = new Date();
 const AVUI_ISO = (() => {
-  const now = new Date();
-  if (now.getFullYear() !== 2026) return null;
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
+  const y = AVUI.getFullYear();
+  const m = String(AVUI.getMonth() + 1).padStart(2, "0");
+  const d = String(AVUI.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 })();
 
-function getMesInicial(){
-  const now = new Date();
-  // Si no estam dins 2026, obrim gener 2026 per defecte
-  if (now.getFullYear() !== 2026) return "2026-01";
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  return `2026-${m}`;
-}
-
+let mesActual = (AVUI.getFullYear() === 2026)
+  ? `2026-${String(AVUI.getMonth() + 1).padStart(2, "0")}`
+  : "2026-01";
 
 function monthToParts(isoYM){
   const [y, m] = isoYM.split("-").map(Number);
@@ -307,14 +302,14 @@ function dibuixaMes(isoYM) {
     const cel = document.createElement("div");
     cel.className = "dia";
 
+    // ✅ Marca el dia d'avui en groc (si coincideix amb el mes que s'està mostrant)
+    if (iso === AVUI_ISO) cel.classList.add("avui");
+
     // Diumenge o festiu (qualsevol any): número verd
     const dow = new Date(Y, M - 1, d).getDay(); // 0 = diumenge
     const esDiumenge = (dow === 0);
     const esFestiu = festius.has(iso);
     if (esDiumenge || esFestiu) cel.classList.add("festiu");
-
-    // ✅ Avui (groc) només si estam dins 2026
-    if (AVUI_ISO && iso === AVUI_ISO) cel.classList.add("avui");
 
     // fons lluna fosca (si existeix)
     if (info?.lluna_foscor?.color) {

@@ -81,6 +81,16 @@ body.nocturn .badge{
   background: rgba(255,68,68,0.18);
 }
 
+/* === Destaques de dies === */
+.dia.festiu .num{ color:#1f9b4a; }
+
+/* ✅ Avui en groc */
+.dia.avui{
+  outline: 3px solid #ffd000;
+  outline-offset: -3px;
+}
+.dia.avui .num{ color:#ffd000; }
+
 /* TOP BAR */
 .topbar{
   display:grid;
@@ -222,12 +232,3 @@ body.nocturn .badge{
   background: rgba(255,68,68,0.18);
 }
 
-
-
-/* Avui (groc) */
-.dia.avui{
-  box-shadow: inset 0 0 0 3px #ffd400;
-}
-.dia.avui .num{
-  color: #ffd400;
-}
