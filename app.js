@@ -14,7 +14,7 @@ const SHEET_FESTIUS = `${BASE_SHEETS}?gid=1058273430&single=true&output=csv`;
 
 // ✅ Calendari ICS (via proxy per evitar CORS a iOS/PWA)
 const CALENDAR_ICS =
-  "https://r.jina.ai/https://calendar.google.com/calendar/ical/astromca%40gmail.com/public/basic.ics";
+  "https://r.jina.ai/http://calendar.google.com/calendar/ical/astromca%40gmail.com/public/basic.ics";
 
 // Mesos en català
 const MESOS_CA = [
@@ -196,12 +196,13 @@ async function loadICS(url) {
   const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) throw new Error(`No puc carregar ICS (${r.status})`);
   let t = await r.text();
+
   // r.jina.ai pot afegir text abans del calendari real
   const idx = t.indexOf("BEGIN:VCALENDAR");
   if (idx !== -1) t = t.slice(idx);
+
   return t;
 }
-
 // =======================
 // Builders
 // =======================
@@ -258,7 +259,6 @@ function getFotoField(f, keys) {
 }
 
 function ensureCaptionEl() {
-  // Ens asseguram que existeix un element per la llegenda
   let el = document.getElementById("titolFoto");
   if (el) return el;
 
@@ -272,7 +272,6 @@ function ensureCaptionEl() {
   el.style.lineHeight = "1.2";
   el.style.fontWeight = "500";
 
-  // Inserta JUST davall la imatge
   img.insertAdjacentElement("afterend", el);
   return el;
 }
@@ -286,11 +285,11 @@ function setFotoMes(isoYM) {
 
   const fallbackPath = `assets/months/2026/${isoYM}.png`;
   const src = (f && f.imatge) ? f.imatge : fallbackPath;
+
   if (img) img.src = src;
 
-  // ✅ Accepta diferents noms de columna (per si el Sheet no és exactament "titol"/"autor")
-  const nom = getFotoField(f, ["titol", "títol", "titulo", "title", "nom"]);
-  const autor = getFotoField(f, ["autor", "author", "fotograf", "fotògraf", "credit", "crèdit"]);
+  const nom = (f && f.titol) ? f.titol : "";
+  const autor = (f && f.autor) ? f.autor : "";
 
   if (cap) cap.textContent = autor ? `${nom} — ${autor}` : nom;
 
@@ -302,6 +301,7 @@ function setFotoMes(isoYM) {
     };
   }
 }
+
 
 
 function obreModalDetallFoto(f) {
@@ -518,9 +518,11 @@ async function inicia() {
     try {
       const icsText = await loadICS(CALENDAR_ICS);
       activitats = buildActivitatsFromICS(parseICS(icsText));
+      console.log("✅ Activitats carregades (dies):", Object.keys(activitats).length);
     } catch (err) {
       console.warn("No he pogut carregar el calendari ICS:", err);
       activitats = {};
+      
     }
 
     renderMes(mesActual);
