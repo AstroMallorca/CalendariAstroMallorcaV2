@@ -284,8 +284,12 @@ const contingutDia = document.getElementById("contingutDia");
 const botoNocturn = document.getElementById("toggleNocturn");
 
 function setFotoMes(isoYM) {
-  const key = isoToMonthKey(isoYM); // "MM-YYYY"
-  const f = fotosMes[key];
+  // El teu Sheet usa "YYYY-MM" (ex: 2026-08)
+// però també acceptam "MM-YYYY" per compatibilitat
+const keyYM = isoYM;              // "2026-08"
+const keyMY = isoToMonthKey(isoYM); // "08-2026"
+const f = fotosMes[keyYM] || fotosMes[keyMY];
+
 
   const img = document.getElementById("imgFotoMes");
   const titol = document.getElementById("titolFoto");
