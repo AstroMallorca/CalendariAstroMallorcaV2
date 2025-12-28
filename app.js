@@ -420,19 +420,6 @@ function dibuixaMes(isoYM) {
 
     const info = efemerides[iso] || null;
     const esp = efemeridesEspecials[iso] || [];
-    // --- ICONES D'EFEMÈRIDES ESPECIALS ---
-if (esp.length) {
-  const iconsWrap = document.createElement('div');
-  iconsWrap.className = 'efemerides-icons';
-
-  esp.forEach(e => {
-    const img = document.createElement('img');
-    img.src = `assets/icons/special/${e.codi}.png`;
-    img.alt = e.titol || e.codi;
-    img.title = e.titol || '';
-    img.className = 'efemeride-icon';
-    iconsWrap.appendChild(img);
-  });
 
   cel.appendChild(iconsWrap);
 }
@@ -462,10 +449,26 @@ if (esp.length) {
     cel.innerHTML = `
       <div class="num">${d}</div>
       <div class="badges">
-        ${esp.slice(0,2).map(x => `<span class="badge">${x.codi}</span>`).join("")}
         ${act.length ? `<img class="am-mini" src="assets/icons/astromallorca.png" alt="AstroMallorca">` : ""}
       </div>
     `;
+// --- ICONES D'EFEMÈRIDES ESPECIALS (logos) ---
+if (esp.length) {
+  const badgesEl = cel.querySelector(".badges");
+  const iconsWrap = document.createElement("div");
+  iconsWrap.className = "efemerides-icons";
+
+  esp.forEach(e => {
+    const img = document.createElement("img");
+    img.src = `assets/icons/special/${e.codi}.png`;
+    img.alt = e.titol || e.codi;
+    img.title = e.titol || "";
+    img.className = "efemeride-icon";
+    iconsWrap.appendChild(img);
+  });
+
+  badgesEl.appendChild(iconsWrap);
+}
 
     cel.onclick = () => obreDia(iso);
     graella.appendChild(cel);
