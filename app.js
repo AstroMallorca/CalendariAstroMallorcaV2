@@ -497,13 +497,13 @@ function dibuixaMes(isoYM) {
           : "#000";
     }
 
-    cel.innerHTML = `
-      <div class="num">${d}</div>
-      <div class="badges">
-        ${esp.slice(0,6).map(x => `<img class="esp-icon" src="${x.codi}" alt="${(x.titol||x.clau||"").replace(/"/g,"&quot;")}" title="${(x.titol||"").replace(/"/g,"&quot;")}" loading="lazy">`).join("")}
-        ${act.length ? `<img class="am-mini" src="assets/icons/astromallorca.png" alt="AstroMallorca">` : ""}
-      </div>
-    `;
+   cel.innerHTML = `
+  <div class="num">${d}</div>
+  ${act.length ? `<img class="am-mini am-act-center" src="assets/icons/astromallorca.png" alt="AstroMallorca">` : ""}
+  <div class="badges">
+    ${esp.slice(0,6).map(x => `...`).join("")}
+  </div>
+`;
 
     cel.onclick = () => obreDia(iso);
     graella.appendChild(cel);
