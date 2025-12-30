@@ -573,9 +573,9 @@ const moonHtml = moonQuarters.length
 
     }
     
-
    cel.innerHTML = `
   <div class="num">${d}</div>
+  ${moonHtml}
   ${act.length ? `<img class="am-mini am-act-center" src="assets/icons/astromallorca.png" alt="AstroMallorca">` : ""}
   <div class="badges">
     ${esp.slice(0,6).map(x => `<img class="esp-icon" src="${x.codi}" alt="${(x.titol || x.clau || "").replace(/"/g,"&quot;")}" loading="lazy">`).join("")}
