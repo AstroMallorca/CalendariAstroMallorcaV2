@@ -787,24 +787,60 @@ async function obreDia(iso) {
 
   const solTxt = `🌞 Sortida: ${formatHM(sol.rise)} · Posta: ${formatHM(sol.set)}`;
   const llunaTxt = `🌙 Sortida: ${formatHM(lluna.rise)} · Posta: ${formatHM(lluna.set)}`;
-   contingutDia.innerHTML = `
+     const teActivitat = act && act.length;
+  const teEspecials = esp && esp.length;
+  const teHistoric  = histItems && histItems.length;
+
+  const activitatHtml = teActivitat
+    ? `<div class="dia-card">
+         <div class="dia-card-title">Activitat</div>
+         <ul class="dia-list">
+           ${act.map(a => `<li><b>${a.titol}</b>${a.lloc ? ` — ${a.lloc}` : ""}${a.url ? ` — <a href="${a.url}" target="_blank">Enllaç</a>` : ""}</li>`).join("")}
+         </ul>
+       </div>`
+    : "";
+
+  const especialsHtml = teEspecials
+    ? `<div class="dia-card">
+         <div class="dia-card-title">Efemèrides especials</div>
+         <ul class="dia-list">
+           ${esp.map(e => `<li>${(e.titol || e.clau || "")}${e.hora ? ` — ${e.hora}` : ""}</li>`).join("")}
+         </ul>
+       </div>`
+    : "";
+
+  const historicHtml = teHistoric
+    ? `<div class="dia-card">
+         <div class="dia-section-title small">EFEMÈRIDES HISTÒRIQUES</div>
+         <div class="dia-historic">
+           ${histItems.map(it => {
+             if (typeof it === "string") return `<div class="dia-hitem">${it}</div>`;
+             const year = it.year ? `<span class="dia-hyear">${it.year}</span> — ` : "";
+             const title = it.title || it.titol || "";
+             const desc  = it.description || it.descripcio || it.descripció || it.text || "";
+             return `<div class="dia-hitem">${year}<b>${title}</b>${desc ? `: ${desc}` : ""}</div>`;
+           }).join("")}
+         </div>
+       </div>`
+    : "";
+
+  contingutDia.innerHTML = `
+    <!-- 1) Data -->
     <div class="dia-header">
       <div class="dia-date">${isoToDDMMYYYY(iso)}</div>
       ${nomFestiu ? `<div class="dia-festiu">🎉 ${nomFestiu}</div>` : ""}
     </div>
 
+    <!-- 2) Activitat (només si n'hi ha) -->
+    ${activitatHtml}
+
+    <!-- 3) Títol EFEMÈRIDES -->
     <div class="dia-section-title">EFEMÈRIDES</div>
 
-    <!-- Card 1: Efemèrides especials -->
-    <div class="dia-card">
-      <div class="dia-card-title">Efemèrides especials</div>
-      ${esp.length
-        ? `<ul class="dia-list">${esp.map(e => `<li>${(e.titol || e.clau || "")}${e.hora ? ` — ${e.hora}` : ""}</li>`).join("")}</ul>`
-        : `<div class="dia-muted">Cap destacat.</div>`
-      }
-    </div>
+    <!-- 4) Efemèrides especials (només si n'hi ha) -->
+    ${especialsHtml}
 
-    <!-- Card 2: Sol / Lluna / Planetes / Messiers -->
+    <!-- 5) Bloc Sol/Lluna/Planetes/Messiers -->
     <div class="dia-card">
       <div class="dia-row dia-link" data-href="sol.html?date=${iso}">
         <div class="dia-row-icon">🌞</div>
@@ -839,32 +875,11 @@ async function obreDia(iso) {
       </div>
     </div>
 
-    <!-- Efemèrides històriques -->
-    <div class="dia-card">
-      <div class="dia-section-title small">EFEMÈRIDES HISTÒRIQUES</div>
-      ${histItems.length
-        ? `<div class="dia-historic">${histItems.map(it => {
-            if (typeof it === "string") return `<div class="dia-hitem">${it}</div>`;
-            const year = it.year ? `<span class="dia-hyear">${it.year}</span> — ` : "";
-            const title = it.title || it.titol || "";
-            const desc  = it.description || it.descripcio || it.descripció || it.text || "";
-            return `<div class="dia-hitem">${year}<b>${title}</b>${desc ? `: ${desc}` : ""}</div>`;
-          }).join("")}</div>`
-        : `<div class="dia-muted">Cap efemèride trobada.</div>`
-      }
-    </div>
-
-    <!-- Activitats AstroMallorca -->
-    <div class="dia-card">
-      <div class="dia-card-title">Activitat</div>
-      ${act.length
-        ? `<ul class="dia-list">${act.map(a => `<li><b>${a.titol}</b>${a.lloc ? ` — ${a.lloc}` : ""}${a.url ? ` — <a href="${a.url}" target="_blank">Enllaç</a>` : ""}</li>`).join("")}</ul>`
-        : `<div class="dia-muted">Cap activitat.</div>`
-      }
-    </div>
+    <!-- 6) Efemèrides històriques (al final) -->
+    ${historicHtml}
   `;
 
-  // Clickables (sense tocar HTML global)
+  // Clickables
   contingutDia.querySelectorAll(".dia-link").forEach(el => {
     el.addEventListener("click", () => {
       const href = el.getAttribute("data-href");
@@ -874,7 +889,6 @@ async function obreDia(iso) {
 
   modal.classList.remove("ocult");
 
-}
 
 document.querySelector(".tancar").onclick = () => modal.classList.add("ocult");
 botoNocturn.onclick = () => document.body.classList.toggle("nocturn");
