@@ -241,17 +241,31 @@ function pickHistoricForISO(monthData, iso){
   return [];
 }
 
-function renderHistoricItems(items){
-  if (!items) return [];
-  if (typeof items === "string") return [items];
-  if (Array.isArray(items)) return items;
+function renderHistoricItems(raw){
+  if (!raw) return [];
 
-  if (typeof items === "object"){
-    const t = items.text || items.texto || items.descripcio || items.descripció || items.titol || items.title;
-    return t ? [t] : [];
+  // Si és "wrapper" {date, items:[...]} -> torna items
+  if (typeof raw === "object" && !Array.isArray(raw) && Array.isArray(raw.items)){
+    return raw.items;
   }
-  return [];
+
+  // Si és array i conté wrappers -> aplanam tots els items
+  if (Array.isArray(raw)){
+    const flattened = [];
+    for (const it of raw){
+      if (it && typeof it === "object" && Array.isArray(it.items)) flattened.push(...it.items);
+      else flattened.push(it);
+    }
+    return flattened;
+  }
+
+  // Si és string -> el tractam com un item de text
+  if (typeof raw === "string") return [{ text: raw }];
+
+  // Qualsevol altre objecte -> el tornam com a item
+  return [raw];
 }
+
 let fotosMes = {};             // "MM-YYYY" -> info foto
 let festius = new Map();       // "YYYY-MM-DD" -> "Nom del festiu"
 
@@ -709,14 +723,23 @@ async function obreDia(iso) {
   const monthData = await loadHistoricMonth(y, m1);
   const rawHist = pickHistoricForISO(monthData, iso);
   const histItems = renderHistoricItems(rawHist);
+ const histHtml = histItems.length
+  ? `<h3>Efemèrides històriques</h3><ul>${histItems.map(it => {
+      // it és un "event" (type/category/title/year/description)
+      if (typeof it === "string") return `<li>${it}</li>`;
 
-  const histHtml = histItems.length
-    ? `<h3>Efemèrides històriques</h3><ul>${histItems.map(it => {
-        if (typeof it === "string") return `<li>${it}</li>`;
-        const t = it.text || it.texto || it.descripcio || it.descripció || it.titol || it.title || JSON.stringify(it);
-        return `<li>${t}</li>`;
-      }).join("")}</ul>`
-    : `<h3>Efemèrides històriques</h3><p>Cap efemèride trobada.</p>`;
+      const year = it.year ? `<b>${it.year}</b> — ` : "";
+      const title = it.title || it.titol || it.nom || "";
+      const desc  = it.description || it.descripcio || it.descripció || it.text || it.texto || "";
+
+      // (opcional) category/type al final, en petit
+      const meta = (it.category || it.type) ? ` <span style="opacity:.7;font-size:.9em">(${[it.category,it.type].filter(Boolean).join(" · ")})</span>` : "";
+
+      const line = `${year}${title}${desc ? `: ${desc}` : ""}${meta}`.trim();
+      return `<li>${line}</li>`;
+    }).join("")}</ul>`
+  : `<h3>Efemèrides històriques</h3><p>Cap efemèride trobada.</p>`;
+
   contingutDia.innerHTML = `
     <h2>${iso}</h2>
     ${nomFestiu ? `<p>🎉 <b>${nomFestiu}</b></p>` : ""}
