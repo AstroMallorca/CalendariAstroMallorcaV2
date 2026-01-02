@@ -784,8 +784,8 @@ async function obreDia(iso) {
   const sol = getRiseSet("Sun", iso, APP_OBSERVER);
   const lluna = getRiseSet("Moon", iso, APP_OBSERVER);
 
-  const solTxt = `🌞 Sortida: ${formatHM(sol.rise)} · Posta: ${formatHM(sol.set)}`;
-  const llunaTxt = `🌙 Sortida: ${formatHM(lluna.rise)} · Posta: ${formatHM(lluna.set)}`;
+  const solTxt = `Sortida: ${formatHM(sol.rise)} · Posta: ${formatHM(sol.set)}`;
+  const llunaTxt = `Sortida: ${formatHM(lluna.rise)} · Posta: ${formatHM(lluna.set)}`;
      const teActivitat = act && act.length;
   const teEspecials = esp && esp.length;
   const teHistoric  = histItems && histItems.length;
