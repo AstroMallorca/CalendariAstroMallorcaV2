@@ -639,19 +639,14 @@ function obreModalDetallFoto(f) {
   const credits = (f.credits ?? f.credit ?? "").toString().trim();
 
   // ordre i condicions tal com demanes
-  const metaHtml = [
-    field("Autor", f.autor),
-    field("Lloc", f.lloc),
+  const tech = [];
+  if (f.camera) tech.push(`📷 ${f.camera}`);
+  if (f.objectiu) tech.push(`🔭 ${f.objectiu}`);
+  if (f.exposicio) tech.push(`⏱ ${f.exposicio}`);
+  if (f.iso) tech.push(`ISO ${f.iso}`);
+  if (f.f) tech.push(`f/${f.f}`);
 
-    field("Data", f.data_feta),
-    field("Càmera", f.camera),
-    field("Objectiu", f.objectiu),
-    field("Exposició", f.exposicio),
-    field("ISO", f.iso),
-    field("f", f.f),
-    field("Crèdits", credits),
-  ].join("");
-
+  const techHtml = tech.length ? `<div class="foto-tech">${tech.join(" · ")}</div>` : "";
   const descCurta  = (f.descripcio_curta  ?? "").toString().trim();
   const descLlarga = (f.descripcio_llarga ?? "").toString().trim();
 
@@ -667,7 +662,7 @@ function obreModalDetallFoto(f) {
     ` : ""}
 
     <div style="line-height:1.45">
-      ${metaHtml}
+      ${techHtml}
     </div>
 
     ${descCurta ? `<p style="margin-top:14px">${descCurta}</p>` : ""}
