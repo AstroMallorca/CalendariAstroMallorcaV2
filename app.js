@@ -854,11 +854,6 @@ async function obreDia(iso) {
   const monthData = await loadHistoricMonth(y, m1);
   const rawHist = pickHistoricForISO(monthData, iso);
   const histItems = renderHistoricItems(rawHist);
- const histHtml = histItems.length
-  ? `<h3>Efemèrides històriques</h3><ul>${histItems.map(it => {
-      // it és un "event" (type/category/title/year/description)
-      if (typeof it === "string") return `<li>${it}</li>`;
-
 const title = it.title || it.titol || it.nom || "";
 const desc  = it.description || it.descripcio || it.descripció || it.text || it.texto || "";
 
@@ -866,9 +861,6 @@ const desc  = it.description || it.descripcio || it.descripció || it.text || it
 const meta = (it.category || it.type)
   ? ` <span style="opacity:.7;font-size:.9em">(${[it.category,it.type].filter(Boolean).join(" · ")})</span>`
   : "";
-
-const title = it.title || it.titol || it.nom || "";
-const desc  = it.description || it.descripcio || it.descripció || it.text || it.texto || "";
 
 // 1) Any: primer provam camps; si no hi són, l'extraiem del text "(born 1618)" o "(died 1637)"
 let yv = it.year ?? it.any;
@@ -929,13 +921,28 @@ return `<li>${line}</li>`;
     ? `<div class="dia-card">
          <div class="dia-section-title small">EFEMÈRIDES HISTÒRIQUES</div>
          <div class="dia-historic">
-           ${histItems.map(it => {
-             if (typeof it === "string") return `<div class="dia-hitem">${it}</div>`;
-             const year = it.year ? `<span class="dia-hyear">${it.year}</span> — ` : "";
-             const title = it.title || it.titol || "";
-             const desc  = it.description || it.descripcio || it.descripció || it.text || "";
-             return `<div class="dia-hitem">${year}<b>${title}</b>${desc ? `: ${desc}` : ""}</div>`;
-           }).join("")}
+          ${histItems.map(it => {
+  if (typeof it === "string") return `<div class="dia-hitem">${it}</div>`;
+
+  const desc = (it.description || it.descripcio || it.descripció || it.text || it.texto || "").toString().trim();
+  if (!desc) return "";
+
+  // Any: camp year/any o extret de "(born 1618)" / "(died 1637)"
+  let yv = it.year ?? it.any;
+  if (!yv){
+    const m = desc.match(/\((?:born|died)\s+(\d{3,4})\)/i);
+    if (m) yv = m[1];
+  }
+  const yearPrefix = yv ? `<span class="dia-hyear">${yv}</span>: ` : "";
+
+  // Nom en negreta = abans de la primera coma
+  const parts = desc.split(",");
+  const name = (parts.shift() || "").trim();
+  const rest = parts.length ? ", " + parts.join(",").trim() : "";
+
+  return `<div class="dia-hitem">${yearPrefix}<b>${name}</b>${rest}</div>`;
+}).join("")}
+
          </div>
        </div>`
     : "";
