@@ -1017,6 +1017,7 @@ if (btnNext){
   if (!btnNext.disabled) btnNext.onclick = () => obreDia(nextISO);
 }
 
+}
 
 document.querySelector(".tancar").onclick = () => modal.classList.add("ocult");
 botoNocturn.onclick = () => document.body.classList.toggle("nocturn");
