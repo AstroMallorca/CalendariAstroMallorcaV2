@@ -870,20 +870,26 @@ const meta = (it.category || it.type)
   ? ` <span style="opacity:.7;font-size:.9em">(${[it.category,it.type].filter(Boolean).join(" · ")})</span>`
   : "";
 
-// si hi ha títol i descripció → "Títol: descripció"
-// si només hi ha text → "text"
-let line = "";
+// 1) Any: primer provam camps; si no hi són, l'extraiem del text "(born 1618)" o "(died 1637)"
+let yv = it.year ?? it.any;
+if (!yv && desc){
+  const m = desc.match(/\((?:born|died)\s+(\d{3,4})\)/i);
+  if (m) yv = m[1];
+}
+const yearPrefix = yv ? `<b>${yv}</b>: ` : "";
 
-if (desc) {
-  // Separam el nom (abans de la primera coma) de la resta
+// 2) Nom en negreta: agafam el que hi ha abans de la primera coma
+let line = "";
+if (desc){
   const parts = desc.split(",");
-  const name = parts.shift().trim();
+  const name = (parts.shift() || "").trim();
   const rest = parts.length ? ", " + parts.join(",").trim() : "";
 
-  if (year) {
-    line = `${year.replace(" —", ":")} <b>${name}</b>${rest}${meta}`;
+  // Si hi ha title (format antic), el respectam, però pel teu JSON nou normalment title és buit
+  if (title && desc){
+    line = `${yearPrefix}<b>${title}</b>${desc ? `: ${desc}` : ""}${meta}`;
   } else {
-    line = `<b>${name}</b>${rest}${meta}`;
+    line = `${yearPrefix}<b>${name}</b>${rest}${meta}`;
   }
 }
 
