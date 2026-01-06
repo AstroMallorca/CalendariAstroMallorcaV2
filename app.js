@@ -958,7 +958,8 @@ ${nomFestiu ? `<div class="dia-festiu">🎉 ${nomFestiu}</div>` : ""}
   <div class="dia-row-text">
     <div class="dia-row-title">Sortida i posta de Sol</div>
     <div class="dia-row-sub">${solTxt}</div>
-  </div>
+      </div>
+</div>
 
       <div class="dia-row dia-link" data-href="lluna.html?date=${iso}${obsQ}">
         <div class="dia-row-icon">🌙</div>
