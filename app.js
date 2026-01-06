@@ -363,21 +363,28 @@ function getRiseSet(bodyName, iso, observer){
       return { rise: null, set: null };
     }
 
+    // 1) Body correcte
+    const body =
+      bodyName === "Sun"  ? Astronomy.Body.Sun :
+      bodyName === "Moon" ? Astronomy.Body.Moon :
+      bodyName;
+
+    // 2) Data d'inici del dia
     const [Y,M,D] = iso.split("-").map(Number);
     const start = new Date(Y, M-1, D, 0, 0, 0);
 
-    // ✅ Astronomy vol un Observer propi
+    // 3) Observer d'Astronomy Engine
     const lat = Number(observer?.latitude ?? DEFAULT_OBSERVER.latitude);
     const lon = Number(observer?.longitude ?? DEFAULT_OBSERVER.longitude);
     const h   = Number(observer?.elevation ?? observer?.height ?? 0);
-
     const obs = new Astronomy.Observer(lat, lon, isFinite(h) ? h : 0);
 
-    const riseEvt = Astronomy.SearchRiseSet(bodyName, obs, +1, start, 1);
-    const setEvt  = Astronomy.SearchRiseSet(bodyName, obs, -1, start, 1);
+    // 4) Rise / Set
+    const riseEvt = Astronomy.SearchRiseSet(body, obs, +1, start, 1);
+    const setEvt  = Astronomy.SearchRiseSet(body, obs, -1, start, 1);
 
-    const rise = riseEvt?.date ? new Date(riseEvt.date) : null;
-    const set  = setEvt?.date  ? new Date(setEvt.date)  : null;
+    const rise = riseEvt?.time?.date ? new Date(riseEvt.time.date.getTime()) : null;
+    const set  = setEvt?.time?.date  ? new Date(setEvt.time.date.getTime())  : null;
 
     return { rise, set };
   }catch(e){
@@ -842,6 +849,7 @@ async function obreDia(iso) {
   const info = efemerides[iso] || {};
   const esp = efemeridesEspecials[iso] || [];
   const act = activitats[iso] || [];
+  const obsQ = `&lat=${encodeURIComponent(APP_OBSERVER.latitude)}&lon=${encodeURIComponent(APP_OBSERVER.longitude)}&elev=${encodeURIComponent(APP_OBSERVER.elevation ?? 0)}`;
 
   const nomFestiu = festius.get(iso);
 
@@ -855,6 +863,7 @@ async function obreDia(iso) {
   const actHtml = act.length
     ? `<h3>Activitats AstroMallorca</h3><ul>${act.map(a => `<li><b>${a.titol}</b>${a.lloc ? " — " + a.lloc : ""}${a.url ? ` — <a href="${a.url}" target="_blank">Enllaç</a>` : ""}</li>`).join("")}</ul>`
     : `<h3>Activitats AstroMallorca</h3><p>Cap activitat.</p>`;
+  
 // === Efemèrides històriques (del teu JSON/CSV anual) ===
 const [yStr, mStr] = iso.split("-");
 const y = Number(yStr);
@@ -921,7 +930,6 @@ const histItems = renderHistoricItems(rawHist);
          </div>
        </div>`
     : "";
-
   contingutDia.innerHTML = `
     <!-- 1) Data -->
     <div class="dia-header dia-header-nav">
@@ -945,14 +953,12 @@ ${nomFestiu ? `<div class="dia-festiu">🎉 ${nomFestiu}</div>` : ""}
     ${especialsHtml}
 
     <!-- 5) Bloc Sol/Lluna/Planetes/Messiers -->
-    <div class="dia-card">
-      <div class="dia-row dia-link" data-href="sol.html?date=${iso}${obsQ}">
-        <div class="dia-row-icon">🌞</div>
-        <div class="dia-row-text">
-          <div class="dia-row-title">Sortida i posta de Sol</div>
-          <div class="dia-row-sub">${solTxt}</div>
-        </div>
-      </div>
+    <div class="dia-row dia-link" data-href="sol.html?date=${iso}${obsQ}">
+  <div class="dia-row-icon">🌞</div>
+  <div class="dia-row-text">
+    <div class="dia-row-title">Sortida i posta de Sol</div>
+    <div class="dia-row-sub">${solTxt}</div>
+  </div>
 
       <div class="dia-row dia-link" data-href="lluna.html?date=${iso}${obsQ}">
         <div class="dia-row-icon">🌙</div>
@@ -982,8 +988,7 @@ ${nomFestiu ? `<div class="dia-festiu">🎉 ${nomFestiu}</div>` : ""}
     <!-- 6) Efemèrides històriques (al final) -->
     ${historicHtml}
   `;
-    const obsQ = `&lat=${encodeURIComponent(APP_OBSERVER.latitude)}&lon=${encodeURIComponent(APP_OBSERVER.longitude)}&elev=${encodeURIComponent(APP_OBSERVER.elevation ?? 0)}`;
-
+   
   // Clickables
   contingutDia.querySelectorAll(".dia-link").forEach(el => {
     el.addEventListener("click", () => {
