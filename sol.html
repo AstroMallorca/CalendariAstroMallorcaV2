@@ -85,8 +85,10 @@
   </div>
 
   <!-- astronomy-engine (mateixa llibreria que ja tens a index.html) -->
-  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-
+ <script src="assets/js/astronomy.browser.min.js"></script>
+  <script>
+  console.log("Astronomy loaded?", typeof Astronomy, Astronomy?.SearchRiseSet);
+</script>
  <script>
   const p = new URLSearchParams(location.search);
 
@@ -112,6 +114,7 @@
   }
 
   const day0 = parseISODateLocal(dateStr);
+  try {
 
   document.getElementById("back").addEventListener("click", (e) => {
     e.preventDefault();
@@ -200,7 +203,8 @@
     const tr = Astronomy.SearchTransit(Astronomy.Body.Sun, obs, startMorning, 2);
     solarNoon = tr?.time?.date ? new Date(tr.time.date.getTime()) : null;
     if (solarNoon) maxAlt = sunAltitudeAt(solarNoon);
-  }catch(e){}
+  }catch(e){
+  }
 
   const goldenPM    = tryAltitudeCrossing(-4, -1, startEvening);
   const sunset      = tryRiseSet(-1, startEvening);
@@ -271,6 +275,12 @@
     err.style.display = "block";
     err.textContent = "Algunes hores no s'han pogut calcular. Falta: " + missing.join(", ");
   }
+    } catch (e) {
+  console.error("Error calculant el Sol:", e);
+  const err = document.getElementById("err");
+  err.style.display = "block";
+  err.textContent = "Error intern calculant efemèrides. Mira la consola.";
+}
 </script>
 
 </body>
