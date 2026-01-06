@@ -373,6 +373,12 @@ body.nocturn .btn-nav-mes{
   align-items: center;
   gap: 8px;
 }
+.dia-festiu{
+  text-align: center;      /* per si a algun navegador flex no basta */
+  width: 100%;             /* assegura que ocupa tot l’ample */
+  margin-left: 0;
+  margin-right: 0;
+}
 
 .dia-section-title{
   text-align:center;
