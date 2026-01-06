@@ -134,11 +134,12 @@
     return `${h}h ${String(m).padStart(2,"0")}m`;
   }
 
-  function tryRiseSet(direction, startDate){
+ function tryRiseSet(direction, startDate){
   try{
     const t0 = Astronomy.MakeTime(startDate);
-    const evt = Astronomy.SearchRiseSet(Astronomy.Body.Sun, obs, direction, t0, 2, 0);
-    return evt?.time?.date ? new Date(evt.time.date.getTime()) : null;
+    const t  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, obs, direction, t0, 2, 0);
+    // ✅ t és AstroTime, no {time: ...}
+    return (t && t.date) ? new Date(t.date.getTime()) : null;
   }catch(e){
     console.warn("SearchRiseSet error:", e);
     return null;
@@ -148,8 +149,9 @@
 function tryAltitudeCrossing(altDeg, direction, startDate){
   try{
     const t0 = Astronomy.MakeTime(startDate);
-    const evt = Astronomy.SearchAltitude(Astronomy.Body.Sun, obs, direction, t0, 2, altDeg, 0);
-    return evt?.time?.date ? new Date(evt.time.date.getTime()) : null;
+    const t  = Astronomy.SearchAltitude(Astronomy.Body.Sun, obs, direction, t0, 2, altDeg);
+    // ✅ t és AstroTime, no {time: ...}
+    return (t && t.date) ? new Date(t.date.getTime()) : null;
   }catch(e){
     console.warn("SearchAltitude error:", e);
     return null;
@@ -204,7 +206,7 @@ function tryAltitudeCrossing(altDeg, direction, startDate){
   let solarNoon = null;
   let maxAlt = NaN;
   try{
-    const tr = Astronomy.SearchTransit(Astronomy.Body.Sun, obs, startMorning, 2);
+    const tr = Astronomy.SearchTransit(Astronomy.Body.Sun, obs, Astronomy.MakeTime(startMorning), 2);
     solarNoon = tr?.time?.date ? new Date(tr.time.date.getTime()) : null;
     if (solarNoon) maxAlt = sunAltitudeAt(solarNoon);
   }catch(e){
