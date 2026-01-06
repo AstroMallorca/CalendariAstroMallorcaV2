@@ -314,6 +314,18 @@ body.nocturn .err{
       err.style.display = "block";
       err.textContent = "Error intern calculant efemèrides. Mira la consola.";
     }
+    // Hereta el mode nocturn de l'app (localStorage) i escolta canvis
+try{
+  const apply = () => {
+    const isNocturn = localStorage.getItem("nocturn") === "1";
+    document.body.classList.toggle("nocturn", isNocturn);
+  };
+  apply();
+  window.addEventListener("storage", (e) => {
+    if (e.key === "nocturn") apply();
+  });
+}catch(e){}
+
   </script>
 
 </body>
