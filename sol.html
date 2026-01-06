@@ -134,41 +134,27 @@
     return `${h}h ${String(m).padStart(2,"0")}m`;
   }
 
-  ffunction tryRiseSet(direction, startDate){
+  function tryRiseSet(direction, startDate){
   try{
-    const evt = Astronomy.SearchRiseSet(
-      Astronomy.Body.Sun,
-      obs,
-      direction,
-      startDate,
-      2,
-      0               // ✅ metersAboveGround
-    );
+    const t0 = Astronomy.MakeTime(startDate);
+    const evt = Astronomy.SearchRiseSet(Astronomy.Body.Sun, obs, direction, t0, 2, 0);
     return evt?.time?.date ? new Date(evt.time.date.getTime()) : null;
   }catch(e){
-    console.error("SearchRiseSet", e);   // ✅ per veure-ho a consola
+    console.warn("SearchRiseSet error:", e);
     return null;
   }
 }
 
 function tryAltitudeCrossing(altDeg, direction, startDate){
   try{
-    const evt = Astronomy.SearchAltitude(
-      Astronomy.Body.Sun,
-      obs,
-      direction,
-      startDate,
-      2,
-      altDeg,
-      0               // ✅ metersAboveGround
-    );
+    const t0 = Astronomy.MakeTime(startDate);
+    const evt = Astronomy.SearchAltitude(Astronomy.Body.Sun, obs, direction, t0, 2, altDeg, 0);
     return evt?.time?.date ? new Date(evt.time.date.getTime()) : null;
   }catch(e){
-    console.error("SearchAltitude", e);  // ✅ per veure-ho a consola
+    console.warn("SearchAltitude error:", e);
     return null;
   }
 }
-
 
   function sunAltitudeAt(date){
     try{
