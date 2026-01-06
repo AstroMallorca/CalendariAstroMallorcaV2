@@ -207,15 +207,16 @@ function tryAltitudeCrossing(altDeg, direction, startDate){
 let maxAlt = NaN;
 
 try{
-  // ✅ Migdia solar = quan l'angle horari del Sol és 0h (pas pel meridià)
-  const tNoon = Astronomy.SearchHourAngle(Astronomy.Body.Sun, obs, 0, startMorning);
-  solarNoon = (tNoon && tNoon.date) ? new Date(tNoon.date.getTime()) : null;
+  const tr = Astronomy.SearchTransit(Astronomy.Body.Sun, obs, startMorning, 2);
+
+  // ✅ SearchTransit retorna AstroEvent -> tr.time és AstroTime
+  solarNoon = (tr && tr.time && tr.time.date) ? new Date(tr.time.date.getTime()) : null;
 
   if (solarNoon) {
     maxAlt = sunAltitudeAt(solarNoon);
   }
 }catch(e){
-  console.warn("SearchHourAngle error:", e);
+  console.warn("SearchTransit error:", e);
 }
 
 
