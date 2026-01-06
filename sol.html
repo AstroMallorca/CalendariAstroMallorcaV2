@@ -210,29 +210,31 @@ try{
 let solarNoon = null;
 let maxAlt = NaN;
 
-try{
-  // ✅ Signatura correcta: (body, observer, direction, startTime, limitDays)
-  const tr = Astronomy.SearchTransit(Astronomy.Body.Sun, obs, +1, startMorning, 2);
+let solarNoon = null;
+let maxAlt = NaN;
 
-  // Segons versions pot retornar:
-  // - AstroEvent { time: AstroTime, ... }
-  // - o directament AstroTime
-  const tt = (tr && tr.time) ? tr.time : tr;
+try {
+  // Migdia solar = hora-angle 0 (pas pel meridià)
+  const evt = Astronomy.SearchHourAngle(
+    Astronomy.Body.Sun,
+    obs,
+    0,              // hora-angle 0h
+    startMorning,   // Date
+    +1              // direcció cap endavant
+  );
 
-  solarNoon = (tt && tt.date) ? new Date(tt.date.getTime()) : null;
+  // SearchHourAngle retorna AstroEvent
+  solarNoon = (evt && evt.time && evt.time.date)
+    ? new Date(evt.time.date.getTime())
+    : null;
 
-  if (solarNoon) {
-    maxAlt = sunAltitudeAt(solarNoon);
-  }
-}catch(e){
-  console.warn("SearchTransit error:", e);
-}
+  // Elevació màxima: ja ve calculada a evt.hor.altitude
+  maxAlt = (evt && evt.hor && Number.isFinite(evt.hor.altitude))
+    ? evt.hor.altitude
+    : NaN;
 
-  if (solarNoon) {
-    maxAlt = sunAltitudeAt(solarNoon);
-  }
-}catch(e){
-  console.warn("SearchTransit error:", e);
+} catch (e) {
+  console.warn("SearchHourAngle (migdia solar) error:", e);
 }
 
 
