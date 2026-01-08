@@ -7,28 +7,31 @@
 
   <style>
 :root{
+  /* DEFAULT (dia) */
   --bg:#ffffff;
   --text:#111111;
   --muted:rgba(0,0,0,.65);
   --border:rgba(0,0,0,.18);
   --card: rgba(0,0,0,0.03);
 
-  --perigeu:#ffd400; /* groc */
-  --apogeu:#19d6ff;  /* blau/cian */
+  --perigeu:#ffd400;
+  --apogeu:#19d6ff;
+
+  --accent:#111111; /* per botons / detalls */
 }
 
-/* MODE NOCTURN automàtic */
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0b0c10;
-    --text:#f3f4f6;
-    --muted:rgba(255,255,255,.70);
-    --border:rgba(255,255,255,.18);
-    --card: rgba(255,255,255,0.06);
+/* MODE NOCTURN MANUAL: fons negre + lletres vermelles */
+body.night{
+  --bg:#0b0c10;
+  --text:#ff3b3b;
+  --muted:rgba(255,59,59,.75);
+  --border:rgba(255,59,59,.22);
+  --card: rgba(255,59,59,0.07);
 
-    --perigeu:#ffd84d;
-    --apogeu:#4fe3ff;
-  }
+  --perigeu:#ffd84d;
+  --apogeu:#4fe3ff;
+
+  --accent:#ff3b3b;
 }
 
 body{
@@ -43,6 +46,24 @@ a{ color: var(--text); text-decoration:none; opacity:.9; }
 a:active{ opacity:1; }
 
 .wrap{ max-width:520px; margin:0 auto; }
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.btn{
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--accent);
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
 
 .err{
   margin-top:16px;
@@ -125,10 +146,14 @@ a:active{ opacity:1; }
 
 <body>
   <div class="wrap">
-    <a href="#" id="back">← Tornar</a>
+    <div class="topbar">
+      <a href="#" id="back">← Tornar</a>
+      <button class="btn" id="toggleNight" type="button">🌙 Mode nocturn</button>
+    </div>
 
     <div class="header">
-      <h1 id="title">La Lluna avui</h1>
+      <!-- TÍTOL: ara serà el nom de la fase -->
+      <h1 id="title">—</h1>
     </div>
 
     <div class="sub">
@@ -144,7 +169,8 @@ a:active{ opacity:1; }
 
     <div class="kpiGrid" id="kpiGrid">
       <div class="k">Il·luminació:</div><div class="v" id="kIll">—</div>
-      <div class="k">Fase:</div><div class="v" id="kPhase">—</div>
+      <!-- Fase: només graus -->
+      <div class="k">Fase:</div><div class="v" id="kPhaseDeg">—</div>
       <div class="k">Mida aparent:</div><div class="v" id="kSize">—</div>
       <div class="k">Distància:</div><div class="v" id="kDist">—</div>
     </div>
@@ -163,6 +189,23 @@ a:active{ opacity:1; }
     document.getElementById("back").addEventListener("click", (e) => {
       e.preventDefault();
       window.history.back();
+    });
+
+    // ==== MODE NOCTURN MANUAL (persistit) ====
+    const NIGHT_KEY = "am_moon_night";
+    const toggleBtn = document.getElementById("toggleNight");
+
+    function applyNight(isNight){
+      document.body.classList.toggle("night", !!isNight);
+      toggleBtn.textContent = isNight ? "☀️ Mode dia" : "🌙 Mode nocturn";
+    }
+    const savedNight = localStorage.getItem(NIGHT_KEY) === "1";
+    applyNight(savedNight);
+
+    toggleBtn.addEventListener("click", () => {
+      const nowNight = !document.body.classList.contains("night");
+      localStorage.setItem(NIGHT_KEY, nowNight ? "1" : "0");
+      applyNight(nowNight);
     });
 
     function parseISODateLocal(iso){
@@ -185,7 +228,7 @@ a:active{ opacity:1; }
       return d >= a0 && d <= a1;
     }
 
-    // Retorna el nom “oficial de calendari” del dia si hi ha fase exacta (nova/plena/quarts)
+    // === FIX IMPORTANT: cercam l'esdeveniment de fase EXACTA tant cap endavant com cap enrere ===
     function phaseExactNameForDay(day){
       const t0 = Astronomy.MakeTime(day);
       const targets = [
@@ -196,23 +239,27 @@ a:active{ opacity:1; }
       ];
 
       for (const it of targets){
-        const ev = Astronomy.SearchMoonPhase(it.angle, t0, 2); // dins +2 dies
-        if (ev && inSameLocalDay(ev.date, day)) return it.name;
+        // Cerca endavant i enrere (per no perdre events que passen abans del migdia)
+        const fwd = Astronomy.SearchMoonPhase(it.angle, t0,  3);
+        const back = Astronomy.SearchMoonPhase(it.angle, t0, -3);
+
+        if (fwd && inSameLocalDay(fwd.date, day)) return it.name;
+        if (back && inSameLocalDay(back.date, day)) return it.name;
       }
       return "";
     }
 
-    // Etiqueta “estil calendari astronòmic”
+    // Etiqueta “calendari astronòmic”
     function phaseLabelForDay(phaseDeg, illum, day){
       const exact = phaseExactNameForDay(day);
       if (exact) return exact;
 
       const d = ((phaseDeg % 360) + 360) % 360;
+
+      // Nota: això només s'usa si NO hi ha fase exacta dins el dia
       if (d > 0 && d < 180){
-        // creixent
         return (illum < 0.5) ? "Crescent creixent" : "Gibosa creixent";
       } else {
-        // minvant
         return (illum < 0.5) ? "Crescent minvant" : "Gibosa minvant";
       }
     }
@@ -220,10 +267,17 @@ a:active{ opacity:1; }
     // Edat de la lluna (dies des de la lluna nova anterior)
     function moonAgeDays(day){
       const t = Astronomy.MakeTime(day);
-      const prevNew = Astronomy.SearchMoonPhase(0, t, -35); // cercar cap enrere
+      const prevNew = Astronomy.SearchMoonPhase(0, t, -35);
       if (!prevNew) return null;
       const ms = day.getTime() - prevNew.date.getTime();
       return ms / (1000 * 60 * 60 * 24);
+    }
+
+    // Petita utilitat per posar el títol amb majúscula inicial (estil "Gibosa minvant")
+    function titleCaseCatalan(s){
+      s = (s || "").trim();
+      if (!s) return s;
+      return s.charAt(0).toUpperCase() + s.slice(1);
     }
 
     function renderMoonSVG(opts){
@@ -260,7 +314,6 @@ a:active{ opacity:1; }
         Z
       `;
 
-      // Imatge base
       const IMG = "assets/moon/plena.png";
 
       return `
@@ -270,14 +323,12 @@ a:active{ opacity:1; }
       <circle cx="${cx}" cy="${cy}" r="${R}"></circle>
     </clipPath>
 
-    <!-- Mascara ombra: aplica vel només a la part fosca -->
     <mask id="maskShadow">
       <rect x="0" y="0" width="240" height="240" fill="black"></rect>
       <circle cx="${cx}" cy="${cy}" r="${R}" fill="white"></circle>
       ${almostNew ? "" : `<path d="${pathLit}" fill="black"></path>`}
     </mask>
 
-    <!-- Mascara zona il·luminada -->
     <mask id="maskLit">
       <rect x="0" y="0" width="240" height="240" fill="black"></rect>
       ${
@@ -288,28 +339,23 @@ a:active{ opacity:1; }
     </mask>
   </defs>
 
-  <!-- Anells -->
   <circle cx="${cx}" cy="${cy}" r="${R_perigeu}" fill="none" stroke="var(--perigeu)" stroke-width="2.5"></circle>
   <circle cx="${cx}" cy="${cy}" r="${R_apogeu}"  fill="none" stroke="var(--apogeu)"  stroke-width="2.5"></circle>
 
-  <!-- Base: imatge una mica enfosquida -->
   <g clip-path="url(#clipDisc)">
     <image href="${IMG}" x="${cx-R}" y="${cy-R}" width="${2*R}" height="${2*R}"
            preserveAspectRatio="xMidYMid slice" opacity="0.75"></image>
   </g>
 
-  <!-- Zona il·luminada: imatge a opacitat 1 -->
   <g clip-path="url(#clipDisc)" mask="url(#maskLit)">
     <image href="${IMG}" x="${cx-R}" y="${cy-R}" width="${2*R}" height="${2*R}"
            preserveAspectRatio="xMidYMid slice" opacity="1"></image>
   </g>
 
-  <!-- Ombra -->
   <g clip-path="url(#clipDisc)" mask="url(#maskShadow)">
     <rect x="${cx-R}" y="${cy-R}" width="${2*R}" height="${2*R}" fill="rgba(0,0,0,0.65)"></rect>
   </g>
 
-  <!-- Contorn -->
   <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1"></circle>
 </svg>`;
     }
@@ -324,15 +370,12 @@ a:active{ opacity:1; }
         const day = parseISODateLocal(dateStr);
         const t = Astronomy.MakeTime(day);
 
-        // Fase (0..360): 0 nova, 90 quart creixent, 180 plena, 270 quart minvant
         const phaseDeg = Astronomy.MoonPhase(t);
         const waxing = (phaseDeg >= 0 && phaseDeg < 180);
 
-        // Il·luminació 0..1 a partir de l'angle simètric 0..180
         const phaseAngle = (phaseDeg <= 180) ? phaseDeg : (360 - phaseDeg);
         const illum = (1 - Math.cos(deg2rad(phaseAngle))) / 2;
 
-        // Distància geocèntrica Terra-Lluna (AU) i diàmetre angular (arcmin)
         const v = Astronomy.GeoVector(Astronomy.Body.Moon, t, true);
         const rAU = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 
@@ -343,7 +386,6 @@ a:active{ opacity:1; }
         const angRad = 2 * Math.atan(R_MOON_KM / distKm);
         const angArcmin = (angRad * 180 / Math.PI) * 60;
 
-        // Escalat del disc entre apogeu/perigeu (valors típics)
         const APog = 29.4;
         const PErig = 33.5;
 
@@ -353,42 +395,21 @@ a:active{ opacity:1; }
         const u = clamp((angArcmin - APog) / (PErig - APog), 0, 1);
         const R_now = R_apogeu + u * (R_perigeu - R_apogeu);
 
-        // Labels
-        const exact = phaseExactNameForDay(day);
+        // === TÍTOL = NOM DE LA FASE ===
         const label = phaseLabelForDay(phaseDeg, illum, day);
+        document.getElementById("title").textContent = titleCaseCatalan(label);
 
-        // === KPI (percentatge amb decimals) ===
-        document.getElementById("kIll").textContent  = fmtPct(illum*100, 2);
-        document.getElementById("kSize").textContent = `${angArcmin.toFixed(1)}′`;
-        document.getElementById("kDist").textContent = `${Math.round(distKm).toLocaleString("ca-ES")} km`;
+        // === KPI ===
+        document.getElementById("kIll").textContent      = fmtPct(illum*100, 2);
+        document.getElementById("kPhaseDeg").textContent = `${phaseDeg.toFixed(1)}°`;
+        document.getElementById("kSize").textContent     = `${angArcmin.toFixed(1)}′`;
+        document.getElementById("kDist").textContent     = `${Math.round(distKm).toLocaleString("ca-ES")} km`;
 
-        // Fase: si és exacta, només nom; si no, nom + graus
-        document.getElementById("kPhase").textContent = exact ? exact : `${label} · ${phaseDeg.toFixed(1)}°`;
-
-        // === Edat de la lluna ===
+        // Edat
         const age = moonAgeDays(day);
-        const ageEl = document.getElementById("age");
-        ageEl.textContent = Number.isFinite(age)
+        document.getElementById("age").textContent = Number.isFinite(age)
           ? `Edat de la lluna: ${age.toFixed(1)} dies`
           : "Edat de la lluna: —";
-
-        // === Títol gran ===
-        const titleEl = document.getElementById("title");
-
-        const isFullDay = (exact === "Lluna plena");
-        const isSuper = isFullDay && distKm < 370000; // ajusta llindar si vols
-
-        if (isFullDay) {
-          titleEl.textContent = isSuper ? "Lluna Plena (Super lluna)" : "Lluna Plena";
-        } else if (exact === "Lluna nova") {
-          titleEl.textContent = "Lluna Nova";
-        } else if (exact === "Quart creixent") {
-          titleEl.textContent = "Quart Creixent";
-        } else if (exact === "Quart minvant") {
-          titleEl.textContent = "Quart Minvant";
-        } else {
-          titleEl.textContent = "La Lluna avui";
-        }
 
         // SVG
         box.innerHTML = renderMoonSVG({ R_perigeu, R_apogeu, R_now, illum, waxing });
