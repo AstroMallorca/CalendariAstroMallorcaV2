@@ -285,14 +285,23 @@ const MOON_EVENT_ALT = -0.3;
       if (!Number.isFinite(x)) return "—";
       return `${x.toFixed(decimals)}%`;
     }
+function fmtTimeHM(d){
+  return new Intl.DateTimeFormat("ca-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).format(d);
+}
 
     function fmtDowDM(d){
-  return new Intl.DateTimeFormat("ca-ES", {
+  const s = new Intl.DateTimeFormat("ca-ES", {
     weekday: "short",
     day: "2-digit",
     month: "2-digit"
-  }).format(d).replace(".", ""); // "dg 08/02"
+  }).format(d).replace(".", "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
 
 
     function fmtDurationHM(ms){
