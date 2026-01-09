@@ -404,39 +404,7 @@ a:active{ opacity:1; }
     }
 
     // ======= RISE/SET i màxim =======
-    function searchRiseSetLocal(body, observer, startDateLocal, direction, limitDays){
-      const t0 = Astronomy.MakeTime(startDateLocal);
-      const ev = Astronomy.SearchRiseSet(body, observer, direction, t0, limitDays);
-      return ev ? ev.date : null;
-    }
 
-    function findMoonRiseSetForNight(day, observer){
-      // Nit = des del capvespre del dia fins al dematí del dia següent
-      const day0 = new Date(day); day0.setHours(0,0,0,0);
-      const day1 = new Date(day0.getTime() + 24*3600*1000);
-
-      // Sunset del dia i sunrise del dia següent (SUN)
-      const noon0 = new Date(day0); noon0.setHours(12,0,0,0);
-      const noon1 = new Date(day1); noon1.setHours(12,0,0,0);
-
-      const sunset  = searchRiseSetLocal(Astronomy.Body.Sun, observer, noon0, -1, 2); // set
-      const sunrise = searchRiseSetLocal(Astronomy.Body.Sun, observer, noon1, +1, 2); // rise
-
-      // Moon rise/set al voltant d'aquest interval (cercam dins 2 dies des de l'inici de la nit)
-      // Si no hi ha sunrise/sunset (latituds altes), pot fallar: ho protegim.
-      const nightStart = sunset || new Date(day0.getTime() + 18*3600*1000);
-      const nightEnd   = sunrise || new Date(day1.getTime() + 6*3600*1000);
-
-      // Cercam la primera sortida després de nightStart - 12h, i la primera posta després d'allà
-      const startSearch = new Date(nightStart.getTime() - 12*3600*1000);
-
-      const rise = searchRiseSetLocal(Astronomy.Body.Moon, observer, startSearch, +1, 3);
-      let set = searchRiseSetLocal(Astronomy.Body.Moon, observer, startSearch, -1, 3);
-
-      // Ajust: si set cau abans que rise, cercam set a partir de rise
-      if (rise && set && set.getTime() <= rise.getTime()){
-        set = searchRiseSetLocal(Astronomy.Body.Moon, observer, new Date(rise.getTime() + 5*60000), -1, 3);
-      }
 
       // Transit (màxim) amb SearchHourAngle si existeix
       let transit = null;
@@ -449,23 +417,6 @@ a:active{ opacity:1; }
 
       return { nightStart, nightEnd, sunset, sunrise, rise, set };
     }
-
-    // Helper perquè Safari no es torni boig amb Date subclasses (segur)
-    function reedDate(ms){ return new Date(ms); }
-
-    function bodyAltitudeDeg(body, observer, date){
-  const t = Astronomy.MakeTime(date);
-
-  // Equator() retorna ra/dec (en hores i graus)
-  const eq = Astronomy.Equator(body, t, observer, true, true);
-  if (!eq || !Number.isFinite(eq.ra) || !Number.isFinite(eq.dec)) return null;
-
-  // Horizon() vol ra (hores) i dec (graus)
-  const hor = Astronomy.Horizon(t, observer, eq.ra, eq.dec, true);
-  if (!hor || !Number.isFinite(hor.altitude)) return null;
-
-  return hor.altitude;
-}
 
 
 function maxAltitudeBetween(body, observer, tStartDate, tEndDate, stepMinutes = 5){
