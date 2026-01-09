@@ -632,8 +632,8 @@ const day0 = new Date(day); day0.setHours(0,0,0,0);
 // Cercam rise/set a partir de (dia - 12h) per agafar el cicle correctament
 const startSearch = new Date(day0.getTime() - 12*3600*1000);
 
-const riseEv = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, Astronomy.MakeTime(startSearch), 3);
-let setEv    = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(startSearch), 3);
+const riseEv = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, startSearch, 3);
+let setEv    = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, startSearch, 3);
 
 const rise = riseEv ? riseEv.date : null;
 let set    = setEv  ? setEv.date  : null;
@@ -641,14 +641,14 @@ let set    = setEv  ? setEv.date  : null;
 // Si set surt abans de rise, cercam la següent posta després de rise
 if (rise && set && set.getTime() <= rise.getTime()){
   const afterRise = new Date(rise.getTime() + 5*60*1000);
-  const set2 = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(afterRise), 3);
+  const set2 = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, afterRise, 3);
   set = set2 ? set2.date : set;
 }
 
 // Transit: millor amb SearchTransit si existeix
 let transit = null;
 if (typeof Astronomy.SearchTransit === "function"){
-  const trEv = Astronomy.SearchTransit(Astronomy.Body.Moon, observer, Astronomy.MakeTime(startSearch), 3);
+  const trEv = Astronomy.SearchTransit(Astronomy.Body.Moon, observer, startSearch, 3);
   transit = trEv ? trEv.date : null;
 }
 
@@ -681,8 +681,8 @@ if (rise && set && transit){
   const noon0 = new Date(day0); noon0.setHours(12,0,0,0);
   const noon1 = new Date(day1); noon1.setHours(12,0,0,0);
 
-  const sunsetEv  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, Astronomy.MakeTime(noon0), 2);
-  const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, Astronomy.MakeTime(noon1), 2);
+  const sunsetEv  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, noon0, 2);
+const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, noon1, 2);
 
   const sunset  = sunsetEv  ? sunsetEv.date  : null;
   const sunrise = sunriseEv ? sunriseEv.date : null;
