@@ -363,16 +363,32 @@ a:active{ opacity:1; }
     }
 
     // --- helpers robustos per versions diferents ---
-    function evToDate(x){
-      if (!x) return null;
-      if (x instanceof Date) return Number.isFinite(x.getTime()) ? x : null;
-      if (typeof x.ToDate === "function"){
-        const d = x.ToDate();
-        return (d instanceof Date && Number.isFinite(d.getTime())) ? d : null;
-      }
-      if (x.date instanceof Date) return Number.isFinite(x.date.getTime()) ? x.date : null;
-      return null;
-    }
+  function evToDate(x){
+  if (!x) return null;
+
+  // si ve en forma { date: ... } -> recursiu
+  if (x.date) return evToDate(x.date);
+
+  // ja és Date
+  if (x instanceof Date) return Number.isFinite(x.getTime()) ? x : null;
+
+  // AstroTime típic (astronomy-engine) -> .ToDate()
+  if (typeof x.ToDate === "function"){
+    const d = x.ToDate();
+    return (d instanceof Date && Number.isFinite(d.getTime())) ? d : null;
+  }
+
+  // AstroTime alternatiu (sense ToDate), amb .ut (JD UTC)
+  if (typeof x.ut === "number" && Number.isFinite(x.ut)){
+    // JD -> Date
+    const ms = (x.ut - 2440587.5) * 86400000;
+    const d = new Date(ms);
+    return Number.isFinite(d.getTime()) ? d : null;
+  }
+
+  return null;
+}
+
 
     function toAstroTime(x){
       // ja és AstroTime?
