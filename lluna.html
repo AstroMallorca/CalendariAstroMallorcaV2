@@ -633,47 +633,44 @@ const startDate = new Date(base.getTime() - 18*3600*1000);
 
 const metersAboveGround = 0;
 
-// ✅ Passam JD (número) en lloc de Date/AstroTime
 const startJD = toJulianUtc(startDate);
-console.log("startJD", startJD, "finite?", Number.isFinite(startJD));
-// 1) RISE
+const startTime = { ut: startJD };   // ✅ AstroTime explícit
+
 const riseEv = Astronomy.SearchRiseSet(
   Astronomy.Body.Moon,
   observer,
   +1,
-  startJD,
+  startTime,
   2,
   metersAboveGround
 );
+
 
 const rise = evToDate(riseEv);
 
 if (rise){
   // 2) SET
-  const afterRiseDate = new Date(rise.getTime() + 60*1000);
-  const afterRiseJD = toJulianUtc(afterRiseDate);
+const afterRiseJD = toJulianUtc(afterRiseDate);
+const afterRiseTime = { ut: afterRiseJD };   // ✅
 
-  const setEv = Astronomy.SearchRiseSet(
-    Astronomy.Body.Moon,
-    observer,
-    -1,
-    afterRiseJD,
-    2,
-    metersAboveGround
-  );
+const setEv = Astronomy.SearchRiseSet(
+  Astronomy.Body.Moon,
+  observer,
+  -1,
+  afterRiseTime,
+  2,
+  metersAboveGround
+);
 
-  const set = evToDate(setEv);
+const riseJD = toJulianUtc(rise);
+const riseTime = { ut: riseJD };             // ✅
 
-  if (set){
-    // 3) TRANSIT (màxim) -> també amb JD
-    const riseJD = toJulianUtc(rise);
-
-    const trEv = Astronomy.SearchTransit(
-      Astronomy.Body.Moon,
-      observer,
-      riseJD,
-      2
-    );
+const trEv = Astronomy.SearchTransit(
+  Astronomy.Body.Moon,
+  observer,
+  riseTime,
+  2
+);
 
     const transit = evToDate(trEv);
 
