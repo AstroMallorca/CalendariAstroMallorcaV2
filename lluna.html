@@ -458,6 +458,23 @@ function safeMakeTime(x){
       const e = Math.min(a1.getTime(), b1.getTime());
       return Math.max(0, e - s);
     }
+function toAstroTime(x){
+  // ja és AstroTime?
+  if (x && typeof x === "object" && typeof x.ut === "number") return x;
+  // si és Date, ok
+  if (x instanceof Date) return Astronomy.MakeTime(x);
+  // si és número, ok
+  if (typeof x === "number" && Number.isFinite(x)) return x;
+  // si res, error clar
+  throw new Error("toAstroTime: valor invàlid: " + String(x));
+}
+
+function evToDate(ev){
+  // Astronomy Engine sol retornar { date: Date }
+  if (!ev) return null;
+  const d = ev.date;
+  return (d instanceof Date && Number.isFinite(d.getTime())) ? d : null;
+}
 
     // ======= Gràfica minimalista (SVG) =======
     function renderArcChart({ rise, transit, set }){
@@ -650,58 +667,61 @@ const statsEl   = document.getElementById("stats");
 chartWrap.style.display = "none";
 statsEl.style.display = "none";
 
-const day0 = new Date(day); day0.setHours(0,0,0,0);
+const day0 = new Date(day);
+day0.setHours(0,0,0,0);
 
-// Cercam rise/set a partir de (dia - 12h) per agafar el cicle correctament
-   if (!(day0 instanceof Date) || !Number.isFinite(day0.getTime())){
-  throw new Error("Dia invàlid (dateStr). Revisa el paràmetre ?date=YYYY-MM-DD");
+if (!Number.isFinite(day0.getTime())){
+  throw new Error("Dia invàlid (dateStr). Revisa ?date=YYYY-MM-DD");
 }
 
+// IMPORTANT: startSearch com a Date "de veritat"
 const startSearch = new Date(day0.getTime() - 12*3600*1000);
 
-const riseEv = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, startSearch, 3);
-let setEv    = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, startSearch, 3);
+// Converteix a AstroTime (robust)
+const tStart = toAstroTime(startSearch);
 
-const rise = toDate(riseEv);
-let set    = toDate(setEv);
+// Rise/Set (sempre passant AstroTime)
+const riseEv = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, tStart, 3);
+let   setEv  = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, tStart, 3);
 
-// Si set surt abans de rise, cercam la següent posta després de rise
+const rise = evToDate(riseEv);
+let   set  = evToDate(setEv);
+
+// si set surt abans de rise, cerca la següent posta
 if (rise && set && set.getTime() <= rise.getTime()){
   const afterRise = new Date(rise.getTime() + 5*60*1000);
-  const set2 = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, afterRise, 3);
-set = toDate(set2) || set;
+  const tAfter = toAstroTime(afterRise);
+  const set2Ev = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, tAfter, 3);
+  const set2 = evToDate(set2Ev);
+  if (set2) set = set2;
 }
 
-// Transit: millor amb SearchTransit si existeix
+// Transit (si existeix)
 let transit = null;
 if (typeof Astronomy.SearchTransit === "function"){
-  const trEv = Astronomy.SearchTransit(Astronomy.Body.Moon, observer, startSearch, 3);
-  ttransit = toDate(trEv);
+  const trEv = Astronomy.SearchTransit(Astronomy.Body.Moon, observer, tStart, 3);
+  transit = evToDate(trEv);
 }
 
-// Si no hi ha SearchTransit (o falla), fem un “fallback” simple: punt mig rise-set
+// Fallback: punt mig rise-set
 if (!transit && rise && set){
   transit = new Date((rise.getTime() + set.getTime()) / 2);
 }
+
+// ✅ ARA SÍ: posa el console.log AQUÍ (ja no hauria de petar)
 console.log("DEBUG moon graph:");
-console.log("rise =", rise);
-console.log("set =", set);
-console.log("transit =", transit);
+console.log("startSearch(Date) =", startSearch, "isDate?", startSearch instanceof Date);
+console.log("rise =", rise, "set =", set, "transit =", transit);
 
-// Altura màxima (aprox) a l’instant del transit
-const altMax = (transit) ? bodyAltitudeDeg(Astronomy.Body.Moon, observer, transit) : null;
-
-// MOSTRAM si com a mínim tenim rise+set+transit
+// Si tenim dades mínimes, mostram
 if (rise && set && transit){
+  const altMax = bodyAltitudeDeg(Astronomy.Body.Moon, observer, transit);
+
   chartWrap.style.display = "";
   document.getElementById("chartTitle").textContent =
     `Altura max: ${Number.isFinite(altMax) ? Math.round(altMax) + "°" : "—"}`;
 
-  document.getElementById("chartBox").innerHTML = renderArcChart({
-    rise,
-    transit,
-    set
-  });
+  document.getElementById("chartBox").innerHTML = renderArcChart({ rise, transit, set });
 
   // Temps total damunt horitzó
   const aboveMs = Math.max(0, set.getTime() - rise.getTime());
@@ -712,11 +732,14 @@ if (rise && set && transit){
   const noon0 = new Date(day0); noon0.setHours(12,0,0,0);
   const noon1 = new Date(day1); noon1.setHours(12,0,0,0);
 
-  const sunsetEv  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, noon0, 2);
-const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, noon1, 2);
+  const tNoon0 = toAstroTime(noon0);
+  const tNoon1 = toAstroTime(noon1);
 
-  const sunset  = sunsetEv  ? sunsetEv.date  : null;
-  const sunrise = sunriseEv ? sunriseEv.date : null;
+  const sunsetEv  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, tNoon0, 2);
+  const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, tNoon1, 2);
+
+  const sunset  = evToDate(sunsetEv);
+  const sunrise = evToDate(sunriseEv);
 
   if (sunset && sunrise){
     const nightMs = Math.max(0, sunrise.getTime() - sunset.getTime());
@@ -730,9 +753,7 @@ const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, noon
     document.getElementById("sNightNoMoon").textContent = "—";
   }
 
-  // “Inclinació orbital” (encara pendent)
   document.getElementById("sIncl").textContent = "—";
-
   statsEl.style.display = "";
 }
 
