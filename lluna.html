@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Lluna</title>
+  <link rel="icon" href="assets/icons/astromallorca.png">
+
 
   <style>
 :root{
@@ -451,38 +453,45 @@ a:active{ opacity:1; }
     // Helper perquè Safari no es torni boig amb Date subclasses (segur)
     function reedDate(ms){ return new Date(ms); }
 
-    function moonAltitudeDeg(body, observer, date){
-      const t = Astronomy.MakeTime(date);
-      const hor = Astronomy.Horizon(t, observer, body, true);
-      return hor ? hor.altitude : null;
+    function bodyAltitudeDeg(body, observer, date){
+  const t = Astronomy.MakeTime(date);
+
+  // Equator() retorna ra/dec (en hores i graus)
+  const eq = Astronomy.Equator(body, t, observer, true, true);
+  if (!eq || !Number.isFinite(eq.ra) || !Number.isFinite(eq.dec)) return null;
+
+  // Horizon() vol ra (hores) i dec (graus)
+  const hor = Astronomy.Horizon(t, observer, eq.ra, eq.dec, true);
+  if (!hor || !Number.isFinite(hor.altitude)) return null;
+
+  return hor.altitude;
+}
+
+
+function maxAltitudeBetween(body, observer, tStartDate, tEndDate, stepMinutes = 5){
+  if (!tStartDate || !tEndDate) return null;
+  const t0 = tStartDate.getTime();
+  const t1 = tEndDate.getTime();
+  if (!(t1 > t0)) return null;
+
+  let bestAlt = -1e9;
+  let bestT = null;
+
+  const stepMs = stepMinutes * 60 * 1000;
+
+  for (let ms = t0; ms <= t1; ms += stepMs){
+    const d = new Date(ms);
+    const alt = bodyAltitudeDeg(body, observer, d);
+    if (Number.isFinite(alt) && alt > bestAlt){
+      bestAlt = alt;
+      bestT = d;
     }
+  }
 
-    function moonTransitLocal(body, observer, day){
-      // Prova 1: SearchHourAngle (si existeix)
-      try{
-        if (typeof Astronomy.SearchHourAngle === "function"){
-          const day0 = new Date(day); day0.setHours(0,0,0,0);
-          const start = new Date(day0.getTime() + 6*3600*1000);
-          const t0 = Astronomy.MakeTime(start);
-          const ev = Astronomy.SearchHourAngle(body, observer, 0, t0, 2);
-          if (ev && ev.date) return ev.date;
-        }
-      }catch(e){}
+  if (!bestT) return null;
+  return { time: bestT, altDeg: bestAlt };
+}
 
-      // Prova 2: mostreig (cada 5 minuts) del dia sencer: agafa màxim d'altura
-      const day0 = new Date(day); day0.setHours(0,0,0,0);
-      const day1 = new Date(day0.getTime() + 24*3600*1000);
-      let bestAlt = -1e9, bestT = null;
-
-      for (let tt = new Date(day0); tt <= day1; tt = new Date(tt.getTime() + 5*60*1000)){
-        const alt = moonAltitudeDeg(Astronomy.Body.Moon, observer, tt);
-        if (Number.isFinite(alt) && alt > bestAlt){
-          bestAlt = alt;
-          bestT = new Date(tt);
-        }
-      }
-      return bestT;
-    }
 
     function overlapMs(a0, a1, b0, b1){
       const s = Math.max(a0.getTime(), b0.getTime());
@@ -701,70 +710,82 @@ a:active{ opacity:1; }
         // SVG Lluna
         box.innerHTML = renderMoonSVG({ R_perigeu, R_apogeu, R_now, illum, waxing });
 
-        // ======= Gràfica + resum inferior =======
-        // Rise/set i transit (màxim) per al dia
-        const day0 = new Date(day); day0.setHours(0,0,0,0);
-        const noon = new Date(day0); noon.setHours(12,0,0,0);
+// ======= Gràfica + resum inferior =======
+const chartWrap = document.getElementById("chartWrap");
+const statsEl   = document.getElementById("stats");
 
-        const rise = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, Astronomy.MakeTime(new Date(day0.getTime() - 6*3600*1000)), 3)?.date || null;
-        let set = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(new Date(day0.getTime() - 6*3600*1000)), 3)?.date || null;
-        if (rise && set && set.getTime() <= rise.getTime()){
-          set = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(new Date(rise.getTime() + 5*60000)), 3)?.date || set;
-        }
+try{
+  const day0 = new Date(day); day0.setHours(0,0,0,0);
 
-        const transit = moonTransitLocal(Astronomy.Body.Moon, observer, day0);
-        const altMax = transit ? moonAltitudeDeg(Astronomy.Body.Moon, observer, transit) : null;
+  // Cercam rise/set a partir de (dia - 12h) per agafar el cicle correctament
+  const startSearch = new Date(day0.getTime() - 12*3600*1000);
+  const riseEv = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, Astronomy.MakeTime(startSearch), 3);
+  let setEv    = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(startSearch), 3);
 
-        // si tenim dades, mostram
-        if (rise && set && transit && Number.isFinite(altMax)){
-          document.getElementById("chartWrap").style.display = "";
-          document.getElementById("chartTitle").textContent = `Altura max: ${Math.round(altMax)}°`;
-          document.getElementById("chartBox").innerHTML = renderArcChart({
-            rise, transit, set,
-            altMaxDeg: altMax
-          });
+  const rise = riseEv ? riseEv.date : null;
+  let set    = setEv  ? setEv.date  : null;
 
-          // estadístiques: total damunt horitzó
-          const aboveMs = Math.max(0, set.getTime() - rise.getTime());
-          document.getElementById("sAbove").textContent = fmtDurationHM(aboveMs);
+  // Si set surt abans de rise, cercam la següent posta després de rise
+  if (rise && set && set.getTime() <= rise.getTime()){
+    const afterRise = new Date(rise.getTime() + 5*60*1000);
+    const set2 = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, -1, Astronomy.MakeTime(afterRise), 3);
+    set = set2 ? set2.date : set;
+  }
 
-          // nit: sunset(dia) -> sunrise(dia+1)
-          const day1 = new Date(day0.getTime() + 24*3600*1000);
-          const noon0 = new Date(day0); noon0.setHours(12,0,0,0);
-          const noon1 = new Date(day1); noon1.setHours(12,0,0,0);
+  // Transit (màxim) per mostreig entre rise i set
+  const max = (rise && set) ? maxAltitudeBetween(Astronomy.Body.Moon, observer, rise, set, 5) : null;
 
-          const sunset  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, Astronomy.MakeTime(noon0), 2)?.date || null;
-          const sunrise = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, Astronomy.MakeTime(noon1), 2)?.date || null;
+  if (rise && set && max && Number.isFinite(max.altDeg)){
+    chartWrap.style.display = "";
+    document.getElementById("chartTitle").textContent = `Altura max: ${Math.round(max.altDeg)}°`;
+    document.getElementById("chartBox").innerHTML = renderArcChart({
+      rise,
+      transit: max.time,
+      set,
+      altMaxDeg: max.altDeg
+    });
 
-          if (sunset && sunrise){
-            const nightMs = Math.max(0, sunrise.getTime() - sunset.getTime());
+    // Temps total damunt horitzó
+    const aboveMs = Math.max(0, set.getTime() - rise.getTime());
+    document.getElementById("sAbove").textContent = fmtDurationHM(aboveMs);
 
-            // interval lluna (pot travessar mitjanit): aproximació utilitzant rise/set trobats
-            // Per solapar amb la nit, definim interval lluna "visible" com [rise,set] si cobreix la nit
-            // Si rise abans que sunset i set després, també funciona.
-            const withMoonMs = overlapMs(sunset, sunrise, rise, set);
-            const noMoonMs = Math.max(0, nightMs - withMoonMs);
+    // Nit: sunset(dia) -> sunrise(dia+1)
+    const day1 = new Date(day0.getTime() + 24*3600*1000);
+    const noon0 = new Date(day0); noon0.setHours(12,0,0,0);
+    const noon1 = new Date(day1); noon1.setHours(12,0,0,0);
 
-            document.getElementById("sNightMoon").textContent = fmtDurationHM(withMoonMs);
-            document.getElementById("sNightNoMoon").textContent = fmtDurationHM(noMoonMs);
-          } else {
-            document.getElementById("sNightMoon").textContent = "—";
-            document.getElementById("sNightNoMoon").textContent = "—";
-          }
+    const sunsetEv  = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, Astronomy.MakeTime(noon0), 2);
+    const sunriseEv = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, Astronomy.MakeTime(noon1), 2);
 
-          // inclinació / latitud eclíptica (si disponible)
-          const elat = eclipticLatitudeDegOfMoon(noon);
-          document.getElementById("sIncl").textContent =
-            Number.isFinite(elat) ? `${Math.round(Math.abs(elat))}°` : "—";
+    const sunset  = sunsetEv  ? sunsetEv.date  : null;
+    const sunrise = sunriseEv ? sunriseEv.date : null;
 
-          document.getElementById("stats").style.display = "";
-        }
+    if (sunset && sunrise){
+      const nightMs = Math.max(0, sunrise.getTime() - sunset.getTime());
+      const withMoonMs = overlapMs(sunset, sunrise, rise, set);
+      const noMoonMs = Math.max(0, nightMs - withMoonMs);
 
-      }catch(e){
-        console.error(e);
-        errEl.style.display = "block";
-        errEl.textContent = "Error: " + (e?.message || e);
-      }
+      document.getElementById("sNightMoon").textContent = fmtDurationHM(withMoonMs);
+      document.getElementById("sNightNoMoon").textContent = fmtDurationHM(noMoonMs);
+    }else{
+      document.getElementById("sNightMoon").textContent = "—";
+      document.getElementById("sNightNoMoon").textContent = "—";
+    }
+
+    // “Inclinació orbital” (de moment: no ho calculem aquí -> no rompre)
+    document.getElementById("sIncl").textContent = "—";
+
+    statsEl.style.display = "";
+  }else{
+    // si no hi ha dades fiables, ocultam secció (no error)
+    chartWrap.style.display = "none";
+    statsEl.style.display = "none";
+  }
+}catch(_e){
+  chartWrap.style.display = "none";
+  statsEl.style.display = "none";
+}
+
     })();
 
     // Hereta el mode nocturn de l'app (localStorage) i escolta canvis
