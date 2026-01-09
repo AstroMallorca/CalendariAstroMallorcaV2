@@ -113,17 +113,24 @@ a:active{ opacity:1; }
   width: 100%;
   margin: 14px auto 8px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(160px, 1fr) auto;
   gap: 6px 14px;
-  max-width: 360px;
-  font-size: 22px;
+  max-width: 380px;
+  font-size: 21px; /* lleugerament més petit */
 }
-.kpiGrid .k{ color:var(--muted); }
+
+.kpiGrid .k{
+  color:var(--muted);
+  white-space: nowrap;   /* ← CLAU: no permet salt de línia */
+}
+
 .kpiGrid .v{
   font-weight: 800;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;   /* també protegim els valors */
 }
+
  .subphase{
   text-align:center;
   color:var(--muted);
