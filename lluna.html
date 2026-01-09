@@ -229,7 +229,6 @@ a:active{ opacity:1; }
       <div class="k">Temps total damunt l’horitzó:</div><div class="v" id="sAbove">—</div>
       <div class="k">Temps total de nit amb lluna:</div><div class="v" id="sNightMoon">—</div>
       <div class="k">Temps total de nit sense lluna:</div><div class="v" id="sNightNoMoon">—</div>
-      <div class="k">Inclinació orbital:</div><div class="v" id="sIncl">—</div>
     </div>
 
     <div class="err" id="err"></div>
@@ -501,6 +500,54 @@ function findRiseSetScan(body, observer, startDate, hours = 36, stepMinutes = 5)
   }
 
   return { rise, set };
+}
+// Calcula (ms) el temps que el cos està per damunt de l'horitzó (alt>0)
+// dins l'interval [start, end], integrant per passos i refinant creuaments.
+function aboveHorizonTimeMs(body, observer, start, end, stepMinutes = 2){
+  if (!(start instanceof Date) || !(end instanceof Date)) return 0;
+  if (!(end.getTime() > start.getTime())) return 0;
+
+  const stepMs = stepMinutes * 60 * 1000;
+
+  let tPrev = new Date(start);
+  let altPrev = bodyAltitudeDeg(body, observer, tPrev);
+  if (!Number.isFinite(altPrev)) return 0;
+
+  let total = 0;
+
+  for (let ms = start.getTime() + stepMs; ms <= end.getTime(); ms += stepMs){
+    const tCur = new Date(ms);
+    const altCur = bodyAltitudeDeg(body, observer, tCur);
+    if (!Number.isFinite(altCur)) continue;
+
+    const prevAbove = altPrev > 0;
+    const curAbove  = altCur  > 0;
+
+    if (prevAbove && curAbove){
+      // tot el segment és "damunt"
+      total += (tCur.getTime() - tPrev.getTime());
+    } else if (prevAbove !== curAbove){
+      // hi ha creuament dins el segment -> refinam el moment de 0°
+      const cross = refineCrossingTime(body, observer, tPrev, tCur, 0);
+      if (cross){
+        if (prevAbove && !curAbove){
+          // baixada: sumam de tPrev fins cross
+          total += (cross.getTime() - tPrev.getTime());
+        } else if (!prevAbove && curAbove){
+          // pujada: sumam de cross fins tCur
+          total += (tCur.getTime() - cross.getTime());
+        }
+      } else {
+        // si no podem refinar, aproximam amb mitja passa (millor que res)
+        total += (tCur.getTime() - tPrev.getTime()) / 2;
+      }
+    }
+
+    tPrev = tCur;
+    altPrev = altCur;
+  }
+
+  return Math.max(0, total);
 }
 
 // Transit: moment d'altura màxima per mostreig (aprox)
@@ -830,19 +877,22 @@ if (rise && set && transit){
     sunrise = sunRS2.rise;
   }
 
-  if (sunset && sunrise){
-    const nightMs = Math.max(0, sunrise.getTime() - sunset.getTime());
-    const withMoonMs = overlapMs(sunset, sunrise, rise, set);
-    const noMoonMs = Math.max(0, nightMs - withMoonMs);
+if (sunset && sunrise){
+  const nightMs = Math.max(0, sunrise.getTime() - sunset.getTime());
 
-    document.getElementById("sNightMoon").textContent = fmtDurationHM(withMoonMs);
-    document.getElementById("sNightNoMoon").textContent = fmtDurationHM(noMoonMs);
-  }else{
-    document.getElementById("sNightMoon").textContent = "—";
-    document.getElementById("sNightNoMoon").textContent = "—";
-  }
+  // ✅ Temps amb lluna DURANT la nit: integració per escaneig (robusta)
+  const withMoonMs = aboveHorizonTimeMs(Astronomy.Body.Moon, observer, sunset, sunrise, 2);
 
-  document.getElementById("sIncl").textContent = "—";
+  // Nit sense lluna = nit total - amb lluna
+  const noMoonMs = Math.max(0, nightMs - withMoonMs);
+
+  document.getElementById("sNightMoon").textContent = fmtDurationHM(withMoonMs);
+  document.getElementById("sNightNoMoon").textContent = fmtDurationHM(noMoonMs);
+}else{
+  document.getElementById("sNightMoon").textContent = "—";
+  document.getElementById("sNightNoMoon").textContent = "—";
+}
+
   statsEl.style.display = "";
 }
 
