@@ -58,16 +58,16 @@
       flex-direction:column;
       gap:10px;
     }
-    .card{
-      display:grid;
-      grid-template-columns: 64px 1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid var(--border);
-      background: var(--card);
-    }
+.card{
+  display:grid;
+  grid-template-columns: 64px minmax(0,1fr) 86px;  /* ✅ la clau: minmax(0,1fr) */
+  gap:12px;
+  align-items:center;
+  padding:10px 12px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background: var(--card);
+}
     .thumb{
       width:64px;
       height:64px;
@@ -87,23 +87,32 @@
       font-size: 13px;
       color: var(--muted);
     }
-    .right{
-      text-align:right;
-      font-variant-numeric: tabular-nums;
-      min-width: 120px;
-    }
+/* ✅ imprescindible en grids: permet que el text "s'encongeixi" */
+.mid{ min-width:0; }
+
+.right{
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+  min-width:0;              /* ✅ */
+  font-size:13px;           /* una mica més petit */
+  line-height:1.15;
+}
 .tag{
-  display:inline-block;
+  display:block;            /* ✅ ocupa ample disponible */
   margin-top:6px;
-  padding:4px 8px;
+  padding:6px 8px;
   border-radius:10px;
   border:1px solid var(--border);
-  font-size:12px;
+  font-size:11px;           /* ✅ més petit */
   color: var(--muted);
-  max-width: 100%;
-  white-space: nowrap;
+  max-width:100%;
+
+  /* ✅ permet diverses línies i evita que surti del card */
+  white-space: normal;      
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
+  line-height:1.25;
+  word-break: break-word;
 }
     .warn{ opacity:.8; }
     .page-title{
@@ -364,6 +373,7 @@ return {
       img.onerror = () => { img.style.display = "none"; };
 
       const mid = document.createElement("div");
+      mid.className = "mid";
       const h = document.createElement("p");
       h.className = "title";
       h.textContent = common ? `${o.id} · ${common}` : `${o.id}`;
