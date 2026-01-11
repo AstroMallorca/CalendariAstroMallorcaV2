@@ -465,6 +465,13 @@ body.nocturn .btn-nav-mes{
 .dia-hyear{
   font-weight: 900;
 }
+/* Fletxes de canvi de dia: igualar mida a les de canvi de mes */
+.dia-header-nav .btn-nav-mes{
+  font-size: 2.2rem;     /* puja la mida */
+  line-height: 1;
+  padding: 0 10px;       /* mateix "aire" lateral */
+}
+
 /* ===== MODE NOCTURN: CARDS ===== */
 
 body.nocturn .dia-card{
