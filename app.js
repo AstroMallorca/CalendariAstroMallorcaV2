@@ -641,29 +641,36 @@ async function loadICS(url) {
 // === Transformacions ===
 function buildEfemeridesEspecials(objs) {
   const out = {};
+
   for (const o of objs) {
     const iso = ddmmyyyyToISO(o.data);
     if (!iso) continue;
+
+    // normalitza ruta icona
+    const codi = (() => {
+      const raw = (o.codi || "").trim();
+      if (!raw) return "";                      // 👈 IMPORTANT
+      if (/^(https?:)?\/\//i.test(raw)) return raw;  // URL
+      if (raw.includes("/")) return raw;             // ja és una ruta
+      return `assets/icons/${raw}`;                  // només nom fitxer
+    })();
+
+    // ✅ si no hi ha icona, NO l'afegim (així no sortirà cap img trencat)
+    if (!codi) continue;
+
     out[iso] ??= [];
     out[iso].push({
-  // si al CSV poses només "eclipsi.png", ho convertim a "assets/icons/eclipsi.png"
-  // si ja poses "assets/icons/eclipsi.png" (o qualsevol ruta/URL), ho deixam tal qual
-  codi: (() => {
-    const raw = (o.codi || "").trim();
-    if (!raw) return "";
-    if (/^(https?:)?\/\//i.test(raw)) return raw;  // URL
-    if (raw.includes("/")) return raw;             // ja és una ruta
-    return `assets/icons/${raw}`;                  // només nom de fitxer
-  })(),
-  clau: o.clau || "",
-  titol: o.titol || "",
-  hora: o.hora || "",
-  importancia: Number(o.importancia || 3)
-});
-
+      codi,
+      clau: (o.clau || "").trim(),
+      titol: (o.titol || "").trim(),
+      hora: (o.hora || o.Hora || "").trim(),          // per si al CSV és "Hora"
+      importancia: Number(o.importancia || 3),
+    });
   }
+
   return out;
 }
+
 function buildEfemeridesEspecialsFromJSON(j) {
   // Converteix un JSON local (formats diversos) a:
   // { "YYYY-MM-DD": [ {codi, titol, clau, hora, importancia} ] }
