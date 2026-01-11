@@ -446,6 +446,22 @@ body.nocturn .btn-nav-mes{
   width: 40px;
   text-align:center;
 }
+/* Quan la icona és una imatge (PNG) */
+.dia-row-icon:has(img){
+  width: 32px;
+  font-size: 0; /* anul·la l'efecte emoji */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dia-row-icon img{
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
 .dia-row-title{
   font-size: 18px;
   font-weight: 800;
@@ -614,11 +630,5 @@ body.nocturn .page-subtitle{ color: rgba(255,59,59,.75); }
 
 body.nocturn .back-btn{
   color: #ff2a2a;
-}
-.dia-row-icon img{
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  display: block;
 }
 
