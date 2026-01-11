@@ -586,3 +586,9 @@ body.nocturn .page-subtitle{ color: rgba(255,59,59,.75); }
   max-width: 720px;
   margin: 0 auto;
 }
+#linkFotoMes{
+  display:block;
+  color: inherit;
+  text-decoration: none;
+}
+#fotoMes{ cursor: pointer; }
