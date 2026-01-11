@@ -39,13 +39,41 @@
       max-width: 720px;
       margin: 0 auto;
     }
+/* Barra de títol amb fletxes (canvi de dia) */
+.daybar{
+  display:grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items:center;
+  gap: 6px;
+  margin: 6px 0 6px;
+}
 
-    h1{
-      margin: 8px 0 12px;
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: .2px;
-    }
+.daybar h1{
+  margin: 0;              /* IMPORTANT: anul·la el margin que tens a h1 */
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  text-align:center;
+}
+
+/* Fletxes “netes” (sense cercle) */
+.navArrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 800;
+  opacity: .9;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.navArrow:active{ opacity:1; }
+.navArrow.disabled{
+  opacity:.25;
+  pointer-events:none;
+}
 
     .meta{
       color: var(--muted);
@@ -154,12 +182,18 @@ th.time{ text-align:right; }
 
 <body>
   <div class="wrap">
-    <a href="#" id="back">← Tornar</a>
+<a href="#" id="back">← Tornar</a>
 
-<h1 class="title">Sistema solar</h1>
+<div class="daybar">
+  <a href="#" class="navArrow" id="prevDay" aria-label="Dia anterior">‹</a>
+  <h1 class="title">Sistema solar</h1>
+  <a href="#" class="navArrow" id="nextDay" aria-label="Dia següent">›</a>
+</div>
+
 <p class="meta meta-center">
-  Data: <span id="d"></span>
+  <span id="d"></span>
 </p>
+
 
 
     <div class="card">
@@ -191,11 +225,33 @@ th.time{ text-align:right; }
   <script src="assets/js/astronomy.browser.min.js"></script>
 
   <script>
-    // --- back ---
-    document.getElementById("back").addEventListener("click", (e) => {
-      e.preventDefault();
-      window.history.back();
-    });
+function currentISOFromQueryOrToday(){
+  const q = new URLSearchParams(location.search);
+  const iso = q.get("date");
+  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+function buildUrlForDateOnPage(page, newISO){
+  const q = new URLSearchParams(location.search);
+  q.set("date", newISO);
+  return `${page}?${q.toString()}`;
+}
+
+// --- back (SEMPRE a index.html amb la data actual) ---
+const backA = document.getElementById("back");
+backA.href = buildUrlForDateOnPage("index.html", currentISOFromQueryOrToday());
+
+backA.addEventListener("click", (e) => {
+  e.preventDefault();
+  location.href = backA.href;   // NO history.back()
+});
+
 
     // --- mode nocturn heretat de l'app ---
     try{
@@ -212,11 +268,61 @@ th.time{ text-align:right; }
     // --- params ---
     const p = new URLSearchParams(location.search);
     const dateStr = p.get("date") || "";     // "YYYY-MM-DD"
+    function isoToDMY(iso){
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}-${m}-${y}`;
+}
+    function isoFromLocalDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const da = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+}
+
+function parseISODateAtMidnightLocal(iso){
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const [y,m,d] = iso.split("-").map(Number);
+  return new Date(y, m-1, d, 0, 0, 0, 0);
+}
+
+function buildUrlForDate(newISO){
+  const q = new URLSearchParams(location.search);
+  q.set("date", newISO);
+  return `${location.pathname}?${q.toString()}`;
+}
+
+// Base del dia: si no hi ha date, agafa avui (local)
+const baseDay = parseISODateAtMidnightLocal(dateStr) || (() => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+})();
+
+// Enllaços prev/next
+const prev = new Date(baseDay); prev.setDate(prev.getDate() - 1);
+const next = new Date(baseDay); next.setDate(next.getDate() + 1);
+
+const prevA = document.getElementById("prevDay");
+const nextA = document.getElementById("nextDay");
+
+if (prevA && nextA){
+  prevA.href = buildUrlForDate(isoFromLocalDate(prev));
+  nextA.href = buildUrlForDate(isoFromLocalDate(next));
+
+  prevA.addEventListener("click", (e) => { e.preventDefault(); location.href = prevA.href; });
+  nextA.addEventListener("click", (e) => { e.preventDefault(); location.href = nextA.href; });
+}
+
+// Si no hi havia dateStr, actualitza també el text de la data (per coherència)
+if (!dateStr){
+ document.getElementById("d").textContent = isoToDMY(isoFromLocalDate(baseDay));
+}
+
     const lat  = Number(p.get("lat"));
     const lon  = Number(p.get("lon"));
     const elev = Number(p.get("elev"));
 
-    document.getElementById("d").textContent = dateStr || "(sense data)";
+    document.getElementById("d").textContent = isoToDMY(dateStr);
 
     const errBox = document.getElementById("err");
     const showErr = (msg) => {
