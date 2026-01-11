@@ -314,15 +314,13 @@ if (prevA && nextA){
 }
 
 // Si no hi havia dateStr, actualitza també el text de la data (per coherència)
-if (!dateStr){
- document.getElementById("d").textContent = isoToDMY(isoFromLocalDate(baseDay));
-}
 
     const lat  = Number(p.get("lat"));
     const lon  = Number(p.get("lon"));
     const elev = Number(p.get("elev"));
 
-    document.getElementById("d").textContent = isoToDMY(dateStr);
+    document.getElementById("d").textContent = isoToDMY(dateStr || isoFromLocalDate(baseDay));
+
 
     const errBox = document.getElementById("err");
     const showErr = (msg) => {
