@@ -7,6 +7,8 @@ const BASE_SHEETS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSWf6OL8LYz
 const SHEET_FOTOS_MES = `${BASE_SHEETS}?output=csv&gid=0`;
 const SHEET_EFEMERIDES = `${BASE_SHEETS}?output=csv&gid=1305356303`;
 const SHEET_CONFIG = `${BASE_SHEETS}?output=csv&gid=1324899531`;
+// ✅ Efemèrides especials (icones) en LOCAL (CSV)
+const LOCAL_EFEMERIDES_CSV = "data/efemerides_2026_data_unica_importancia.csv";
 
 // ✅ FESTIUS (A=data DD-MM-YYYY, B=nom)
 const SHEET_FESTIUS = `${BASE_SHEETS}?output=csv&gid=1058273430`;
@@ -605,7 +607,12 @@ async function loadCSV(url) {
   const { text } = await fetchTextWithFallback(csvFallbacks(url));
   return rowsToObjects(parseCSV(text));
 }
-
+async function loadCSVLocal(path) {
+  const r = await fetch(path, { cache: "no-store" });
+  if (!r.ok) throw new Error(`No puc carregar ${path} (${r.status})`);
+  const text = await r.text();
+  return rowsToObjects(parseCSV(text));
+}
 async function loadICS(url) {
   // IMPORTANT: Google Calendar ICS no envia capçalera CORS.
   // Per això usam proxys amb fallback (i deixam l'URL directa com a últim intent).
@@ -628,12 +635,21 @@ function buildEfemeridesEspecials(objs) {
     if (!iso) continue;
     out[iso] ??= [];
     out[iso].push({
-      codi: o.codi,
-      clau: o.clau || "",
-      titol: o.titol || "",
-      hora: o.hora || "",
-      importancia: Number(o.importancia || 3)
-    });
+  // si al CSV poses només "eclipsi.png", ho convertim a "assets/icons/eclipsi.png"
+  // si ja poses "assets/icons/eclipsi.png" (o qualsevol ruta/URL), ho deixam tal qual
+  codi: (() => {
+    const raw = (o.codi || "").trim();
+    if (!raw) return "";
+    if (/^(https?:)?\/\//i.test(raw)) return raw;  // URL
+    if (raw.includes("/")) return raw;             // ja és una ruta
+    return `assets/icons/${raw}`;                  // només nom de fitxer
+  })(),
+  clau: o.clau || "",
+  titol: o.titol || "",
+  hora: o.hora || "",
+  importancia: Number(o.importancia || 3)
+});
+
   }
   return out;
 }
@@ -1208,8 +1224,10 @@ async function inicia() {
     const e = await loadJSON("data/efemerides2026.json");
 efemerides = e.dies || {};
 
-// ✅ Efemèrides (icones) des del mateix JSON local
-efemeridesEspecials = buildEfemeridesEspecialsFromJSON(e);
+// ✅ Efemèrides (icones) des d'un CSV local
+const espRows = await loadCSVLocal(LOCAL_EFEMERIDES_CSV);
+efemeridesEspecials = buildEfemeridesEspecials(espRows);
+
 
 
     // sheets (fotos + efemèrides + festius)
