@@ -133,6 +133,18 @@ body{
   grid-template-rows: auto 1fr;
   overflow: hidden;
 }
+/* ⭐ Astrofoto: marc més fosc com més aprop de Lluna nova (±3 dies) */
+.dia.astrofoto-3{ border-color: rgba(0,0,0,0.14); }
+.dia.astrofoto-2{ border-color: rgba(0,0,0,0.22); }
+.dia.astrofoto-1{ border-color: rgba(0,0,0,0.34); }
+.dia.astrofoto-0{ border-color: rgba(0,0,0,0.50); }
+
+/* Mode nocturn: mateix criteri però en vermell */
+body.nocturn .dia.astrofoto-3{ border-color: rgba(255,68,68,0.18); }
+body.nocturn .dia.astrofoto-2{ border-color: rgba(255,68,68,0.28); }
+body.nocturn .dia.astrofoto-1{ border-color: rgba(255,68,68,0.42); }
+body.nocturn .dia.astrofoto-0{ border-color: rgba(255,68,68,0.60); }
+
 .dia.buit{
   height: 56px;
   background: transparent !important;
