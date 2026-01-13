@@ -1071,9 +1071,17 @@ if (info?.lluna_foscor?.color && !(esDiumenge || esFestiu)) {
 async function obreDia(iso) {
   const info = efemerides[iso] || {};
   const esp = efemeridesEspecials[iso] || [];
-  const espOrdenades = [...esp].sort(
-  (a, b) => (b.importancia ?? 0) - (a.importancia ?? 0)
-);
+ const espOrdenades = [...esp].sort((a, b) => {
+  const aHas = !!(a.codi || "").trim();
+  const bHas = !!(b.codi || "").trim();
+
+  // 1) primer amb icona
+  if (aHas !== bHas) return bHas - aHas;
+
+  // 2) dins cada grup, per importància desc
+  return (b.importancia ?? 0) - (a.importancia ?? 0);
+});
+
   const act = activitats[iso] || [];
   const obsQ = `&lat=${encodeURIComponent(APP_OBSERVER.latitude)}&lon=${encodeURIComponent(APP_OBSERVER.longitude)}&elev=${encodeURIComponent(APP_OBSERVER.elevation ?? 0)}`;
 
@@ -1092,7 +1100,7 @@ async function obreDia(iso) {
           ? `<img class="esp-icon" src="${icon}" alt="${label.replace(/"/g,"&quot;")}" loading="lazy">`
           : "";
 
-        return `<li class="esp-row">${iconHtml}<span>${label}${e.hora ? " — " + e.hora : ""}</span></li>`;
+       return `<li class="esp-row"><span class="esp-bullet" aria-hidden="true">•</span>${iconHtml}<span>${label}${e.hora ? " — " + e.hora : ""}</span></li>`;
       }).join("")
     }</ul>`
   : `<h3>Efemèrides</h3><p>Cap destacat.</p>`;
